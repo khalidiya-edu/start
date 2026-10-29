@@ -19,11 +19,25 @@ const mem = {};
    so two boys on one device never mix; device-level choices (who is signed in, theme, text size ...) are shared */
 const GLOBAL = new Set(['me', 'aud', 'gateSkip', 'theme', 'fs', 'snd', 'tmin', 'a11y', 'bkthumbs', 'reviewer', 'approved', 'gateLock']);
 let curPid;
-const pidOf = () => { if (curPid === undefined){ try { const m = JSON.parse(localStorage.getItem('rev1.me') || 'null'); curPid = m && m.pid ? m.pid : ''; } catch(e){ curPid = ''; } } return curPid; };
+/* every class site lives on the same origin (khalidiya-edu.github.io/<site>/), so localStorage is namespaced by site: a student who opens another class never overwrites this one's login or progress */
+const SITE = (() => { try { return /github\.io$/.test(location.hostname) ? (location.pathname.split('/')[1] || '') : ''; } catch(e){ return ''; } })();
+const PFX = 'rev1.' + (SITE ? SITE + '.' : '');
+(function migrate(){      // progress saved before namespacing (shared 'rev1.*' keys) moves to this site once, if it belongs to this grade+track
+  if (!SITE) return;
+  try {
+    if (localStorage.getItem(PFX + 'me') !== null) return;
+    const old = JSON.parse(localStorage.getItem('rev1.me') || 'null'); if (!old || !old.cls) return;
+    if (SITE !== 'g' + parseInt(old.cls) + '-' + (/A/.test(old.cls) ? 'advanced' : 'general')) return;
+    const ks = []; for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if (k && k.indexOf('rev1.') === 0 && !/^rev1\.(lang|launch|relayq|pad\.|wb|g\d+-)/.test(k)) ks.push(k); }
+    ks.forEach(k => localStorage.setItem(PFX + k.slice(5), localStorage.getItem(k)));
+  } catch(e){}
+})();
+W.storePrefix = PFX;
+const pidOf = () => { if (curPid === undefined){ try { const m = JSON.parse(localStorage.getItem(PFX + 'me') || 'null'); curPid = m && m.pid ? m.pid : ''; } catch(e){ curPid = ''; } } return curPid; };
 const nk = k => (GLOBAL.has(k) || !pidOf() ? '' : pidOf() + '.') + k;
 W.store = {
-  get(k, d){ const kk = nk(k); try { const v = localStorage.getItem('rev1.' + kk); return v === null ? (kk in mem ? mem[kk] : d) : JSON.parse(v); } catch(e){ return kk in mem ? mem[kk] : d; } },
-  set(k, v){ const kk = nk(k); mem[kk] = v; try { localStorage.setItem('rev1.' + kk, JSON.stringify(v)); } catch(e){} if (k === 'me') curPid = undefined; },
+  get(k, d){ const kk = nk(k); try { const v = localStorage.getItem(PFX + kk); return v === null ? (kk in mem ? mem[kk] : d) : JSON.parse(v); } catch(e){ return kk in mem ? mem[kk] : d; } },
+  set(k, v){ const kk = nk(k); mem[kk] = v; try { localStorage.setItem(PFX + kk, JSON.stringify(v)); } catch(e){} if (k === 'me') curPid = undefined; },
 };
 
 /* ---------- static knowledge ---------- */
