@@ -20,7 +20,7 @@ const mem = {};
 const GLOBAL = new Set(['me', 'aud', 'gateSkip', 'theme', 'fs', 'snd', 'tmin', 'a11y', 'bkthumbs', 'reviewer', 'approved', 'gateLock']);
 let curPid;
 /* every class site lives on the same origin (khalidiya-edu.github.io/<site>/), so localStorage is namespaced by site: a student who opens another class never overwrites this one's login or progress */
-const SITE = (() => { try { return /github\.io$/.test(location.hostname) ? (location.pathname.split('/')[1] || '') : ''; } catch(e){ return ''; } })();
+const SITE = (() => { try { return (location.pathname.match(/^\/(g\d+-(?:general|advanced))\//) || [])[1] || ''; } catch(e){ return ''; } })();   // host-independent: works on github.io and on a custom domain
 const PFX = 'rev1.' + (SITE ? SITE + '.' : '');
 (function migrate(){      // progress saved before namespacing (shared 'rev1.*' keys) moves to this site once, if it belongs to this grade+track
   if (!SITE) return;
