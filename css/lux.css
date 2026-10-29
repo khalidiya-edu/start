@@ -1,0 +1,55 @@
+/* Lesson banner (title + teacher credit): refined navy, a fine gold frame and a soft light. The lesson cards below keep the plain look; the Charter heroes sit at the end of each card. */
+.lesson-top.hubl{position:relative;overflow:hidden;border-radius:22px;padding:22px 26px;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(241,217,143,.16),transparent 45%),linear-gradient(135deg,#0d2342 0%,#164c6b 58%,#1f8a86 100%);
+  box-shadow:0 0 0 1px rgba(241,217,143,.55) inset,0 0 0 5px rgba(13,35,66,.9) inset,0 0 0 6px rgba(241,217,143,.35) inset,0 18px 36px -22px rgba(13,35,66,.7)}
+.lesson-top.hubl::before{content:"";position:absolute;inset-inline-end:-40px;top:-40px;width:170px;height:170px;border-radius:50%;border:1px solid rgba(241,217,143,.28);box-shadow:0 0 0 18px rgba(241,217,143,.05),0 0 0 36px rgba(241,217,143,.03)}
+.lesson-top.hubl::after{content:"";position:absolute;inset-inline:26px;bottom:0;height:2px;background:linear-gradient(90deg,transparent,#e4c071,transparent)}
+.lesson-top.hubl h1{position:relative;color:#fff;letter-spacing:.2px;text-shadow:0 2px 10px rgba(0,0,0,.25)}
+.lesson-top.hubl .credit{position:relative;background:linear-gradient(135deg,rgba(241,217,143,.22),rgba(241,217,143,.08));border:1px solid rgba(241,217,143,.55);box-shadow:0 6px 16px -10px rgba(0,0,0,.6)}
+.lesson-top.hubl .credit i{filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+.lesson-top.hubl .badge{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(241,217,143,.4)}
+/* heroes at the end of a card: quiet */
+.cf-card .hero-say{margin:16px 0 0;opacity:.92}
+
+/* Home: subject tiles that wrap, share the row evenly and centre an odd last row (any screen size); subjects without material go last, quieter */
+.subjects{display:flex!important;flex-wrap:wrap;justify-content:center;gap:14px}
+.subjects>.subj{flex:1 1 300px;min-width:0;max-width:calc(33.333% - 10px)}
+.subjects>.subj.empty-s{opacity:.72}
+@media (max-width:980px){.subjects>.subj{max-width:calc(50% - 7px)}}
+@media (max-width:620px){.subjects>.subj{flex-basis:100%;max-width:100%}}
+
+/* writing pad: sizes, separators, paper types, disabled undo/redo */
+.pad-sep{width:1px;height:26px;background:var(--line,#ddd);margin:0 2px}
+.ps{width:38px;height:38px;border:0;border-radius:9px;background:var(--paper);display:grid;place-items:center;cursor:pointer}
+.ps i{display:block;width:var(--d);height:var(--d);border-radius:50%;background:#0E1A2B;max-width:22px;max-height:22px}
+.ps.on{outline:2px solid var(--gold)}
+.pb:disabled{opacity:.35;cursor:default}
+.pad-cv:focus{outline:2px solid rgba(200,150,46,.6);outline-offset:-2px}
+.pad-cv.p-plain{background-image:none;background-color:#fff}
+.pad-cv.p-grid{background-image:linear-gradient(#cfdced 1px,transparent 1px),linear-gradient(90deg,#cfdced 1px,transparent 1px);background-size:24px 24px;background-color:#FFFEFA}
+.pad-hint{font-size:.85rem;color:#6a7280;padding:4px 8px}
+@media (max-width:520px){.pad-bar{gap:4px}.pb{min-width:36px;min-height:38px}.pc{width:28px;height:28px}.ps{width:34px;height:34px}}
+
+/* Never let media or a wide child widen the page (phones): the video card made every card of the lesson wider than the screen */
+img,video,iframe,canvas,svg{max-width:100%}
+video{width:100%;height:auto;display:block;background:#000;border-radius:12px}
+.advvid{margin:0 0 14px;min-width:0;max-width:100%}
+.advvid figcaption{padding:6px 2px;font-size:.9rem;color:#566}
+.cf,.cf-card,.cf-pane,.cf-body,.cf-nav,.cf-card>*{min-width:0;max-width:100%}
+.cf-nav{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.advchips{max-width:100%}
+@media (max-width:700px){.advchips{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding-bottom:4px}}
+.advchip{flex:none}
+.advbox,.advex,.advst,.rules-grid,.ruleBox,.ph,.ph-en,.ph-ar{min-width:0;max-width:100%}
+.katex-display,.m{max-width:100%;overflow-x:auto;overflow-y:hidden}
+main{min-width:0;overflow-x:clip}
+html,body{max-width:100%;overflow-x:clip}
+pre,table{max-width:100%}
+table{display:block;overflow-x:auto}
+/* long inline formulas inside step lists / feedback scroll inside their own box */
+.pr-steps,.pr-steps li,.step-done>div,.fb,.why-en,.trbox,.opt>span:not(.k):not(.ic){max-width:100%;overflow-x:auto;overflow-y:hidden;padding-bottom:2px}
+.pr-steps ol.steps{padding-inline-start:22px}
+/* KaTeX keeps a hidden MathML copy (position:absolute) of every formula: being absolutely positioned it escaped every overflow box and widened the whole page (RTL: to the left).
+   Make the formula its own containing block and shrink the hidden copy. */
+.katex{position:relative}
+.katex .katex-mathml{width:1px;height:1px;max-width:1px;overflow:hidden}

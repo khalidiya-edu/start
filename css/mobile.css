@@ -1,0 +1,55 @@
+/* iPhone / small-screen fixes (loaded last). Layout only: nothing here changes content. */
+html{-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;min-height:100dvh}
+.sl-bar{padding-bottom:env(safe-area-inset-bottom)}
+@media (max-width:640px){
+  /* room for the fixed slogan bar so it never hides the last lines or buttons */
+  body{padding-bottom:calc(44px + env(safe-area-inset-bottom))}
+  main{padding:12px 10px 60px}
+  /* header: row 1 = brand + class chip + search button; row 2 = menu + four small icon buttons; search opens as row 3 */
+  .bar-in{display:flex;flex-wrap:wrap;align-items:center;row-gap:4px;column-gap:6px;padding:6px 10px}
+  .bar-in .brand{order:1;flex:0 0 auto}
+  #audchip{order:2;flex:1 1 0;min-width:90px;max-width:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:36px;padding:0 10px;font-size:.85rem}
+  .bar-in .sbtn{order:3}
+  .bar-in .nav{order:4;flex:1 1 180px;min-width:180px}
+  .bar-in .chip:not(#audchip):not(.sbtn){order:5}
+  .chip:not(#audchip){padding:0;width:34px;height:34px;min-height:34px;min-width:34px;display:inline-grid;place-items:center;font-size:.85rem}
+  .bar-search{display:none!important;order:9;flex:1 1 100%;margin:0}
+  header.bar.search-open .bar-search{display:flex!important}
+  .bar-search input{width:100%}
+  /* iOS zooms the page when a focused field is under 16px */
+  input,select,textarea{font-size:16px!important}
+  /* touch targets */
+  .btn,button.btn,.tab,.chip3,.pick{min-height:44px}
+  .say{min-width:40px;min-height:40px;display:inline-grid;place-items:center}
+  input[type=checkbox],input[type=radio]{width:22px;height:22px}
+  .nav-in a{min-height:40px;display:inline-flex;align-items:center}
+  /* the passage is read in the page, not in a scroll box inside the scroll page */
+  .passage{max-height:none!important;overflow:visible!important;padding:10px 12px}
+  /* cards inside cards: give the text its width back */
+  .card,.sec{padding-inline:12px}
+  .pr-q{padding:10px!important}
+  .exam-body,.exam-main{padding-inline:6px!important}
+  /* vocabulary table -> one card per word (no letters broken across lines) */
+  table.tb.glos{display:block;overflow:visible}
+  table.tb.glos thead{display:none}
+  table.tb.glos tbody{display:block}
+  table.tb.glos tr{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+  table.tb.glos td{display:block;border:0;padding:2px 0}
+  table.tb.glos td:nth-child(1){grid-column:1;grid-row:1;word-break:normal;overflow-wrap:anywhere;font-size:1.05rem}
+  table.tb.glos td:nth-child(2){grid-column:2;grid-row:1;text-align:end}
+  table.tb.glos td:nth-child(3){grid-column:1/-1}
+  table.tb.glos td:nth-child(4){grid-column:1/-1;font-weight:600}
+  table.tb.glos td,table.tb.glos tr{background:transparent!important}
+  .crumbs a,.crumbs span{display:inline-block;padding:6px 3px}
+  #to-passage{position:fixed;inset-inline-start:12px;bottom:calc(48px + env(safe-area-inset-bottom));z-index:30;border:0;border-radius:999px;padding:10px 16px;font:inherit;font-weight:700;background:#0E1A2B;color:#F7F3EA;box-shadow:0 8px 22px rgba(0,0,0,.3)}
+  /* other tables scroll sideways instead of breaking words */
+  table.tb:not(.glos){display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.tb:not(.glos) th,table.tb:not(.glos) td{white-space:nowrap;word-break:normal;overflow-wrap:normal}
+  /* question footer (previous / hint / next) must clear the slogan bar */
+  .pr-foot{bottom:calc(36px + env(safe-area-inset-bottom))!important}
+}
+@media (max-width:640px) and (orientation:landscape){
+  .bar{position:static}
+  body{padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+}

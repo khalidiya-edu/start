@@ -1,0 +1,53 @@
+/* Dark mode, done once for every component: surfaces that were painted light (white / ivory gradients) become the dark "paper", text becomes the light ink.
+   Loaded last. Semantic states (right / wrong / selected) keep their own dark tints. */
+:root[data-theme=night]{color-scheme:dark}
+:root[data-theme=night] :is(.cf-card,.cf-pane,.ph-big,.ph-pic,.ph-prob,.ph-formula,.ruleBox,.recapbox,.advbox,.advst,.advex,.advtile,.mpair,.mp-bad,.mp-ok,.term,.goal,.qparts li,.passage,.hero-say,.exam-main,.pm,.daily,.curio,.dopt,.wins,.empty.fancy,.tab,.fc-b,.fc-f,.opt,.card,.res,.rcard,.lcard,.station,.subj,.pad,.pad-bar,.pb,.ps,.advchip,.trbox,.btn.ghost,.pr-q,.pr-a,.reviewitem,.notice,.stat,.chip2,.badge){
+  background:var(--paper)!important;background-image:none!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme=night] :is(.cf-card,.cf-pane,.ph,.ph-en,.ph-ar,.ph-m,.m,.ruleBox *,.recapbox *,.advbox *,.mpair *,.pm *,.daily *,.curio *,.term *){color:inherit}
+:root[data-theme=night] .ph-ar{color:#c4ccda!important}
+:root[data-theme=night] .cf-pane>h2,:root[data-theme=night] .cf-pane h3{color:var(--ink)!important}
+:root[data-theme=night] .cf-pane>h2 .kic,:root[data-theme=night] .kic{background:var(--sand)!important;color:var(--gold)!important;box-shadow:none!important}
+:root[data-theme=night] .say,:root[data-theme=night] .sayb{background:var(--sand)!important;color:var(--gold)!important}
+:root[data-theme=night] .tw{color:inherit!important}
+:root[data-theme=night] .mp-ok{background:var(--ok-bg)!important;border-color:var(--ok)!important}
+:root[data-theme=night] .mp-bad{background:var(--bad-bg)!important;border-color:var(--bad)!important}
+:root[data-theme=night] .opt.ok,:root[data-theme=night] .opt.right{background:var(--ok-bg)!important;border-color:var(--ok)!important}
+:root[data-theme=night] .opt.bad{background:var(--bad-bg)!important;border-color:var(--bad)!important}
+:root[data-theme=night] .opt.sel,:root[data-theme=night] .advchip.on,:root[data-theme=night] .tab[aria-selected=true],:root[data-theme=night] .tab.on{background:var(--sand)!important;border-color:var(--gold)!important;color:var(--gold-deep)!important}
+:root[data-theme=night] .fb.ok{background:var(--ok-bg)!important;color:var(--ink)!important}
+:root[data-theme=night] .fb.bad{background:var(--bad-bg)!important;color:var(--ink)!important}
+:root[data-theme=night] .fb.info{background:var(--warn-bg)!important;color:var(--ink)!important}
+:root[data-theme=night] .btn:not(.ghost):not(.gold){color:#0E1A2B}
+:root[data-theme=night] .btn.gold{color:#1c1405}
+:root[data-theme=night] .pad-cv{background-color:#1a2a42;background-image:repeating-linear-gradient(transparent 0 35px,#35517a 35px 36px)}
+:root[data-theme=night] .pad-cv.p-plain{background-image:none}
+:root[data-theme=night] .pad-cv.p-grid{background-image:linear-gradient(#35517a 1px,transparent 1px),linear-gradient(90deg,#35517a 1px,transparent 1px);background-size:24px 24px}
+:root[data-theme=night] .ph-big,:root[data-theme=night] .ph-pic{border-inline-start:4px solid var(--gold)!important}
+:root[data-theme=night] .katex{color:inherit}
+:root[data-theme=night] .hero-say p,:root[data-theme=night] .hero-say .hs-n{color:var(--ink)!important}
+:root[data-theme=night] .lesson-top.hubl{box-shadow:0 0 0 1px rgba(217,182,110,.5) inset,0 18px 36px -22px #000}
+/* text inside the surfaces above: hard-coded navy text rules (passage, stations, tiles, notices) become the light ink */
+:root[data-theme=night] .exam .pr-q .passage,:root[data-theme=night] .exam .pr-q .passage *{color:var(--ink)!important}
+:root[data-theme=night] .exam .pr-q .passage{background:var(--paper)!important}
+:root[data-theme=night] .passage .tw:hover,:root[data-theme=night] .passage .tw:focus-visible{background:var(--gold-soft)!important}
+:root[data-theme=night] .station .node{background:var(--sand)!important;color:var(--gold)!important;border-color:var(--line)!important}
+:root[data-theme=night] :is(.station,.subj,.hero-say,.trbox,.goal,.ph-pic,.empty.fancy,.pr-q,.cf-pane,.daily,.curio,.pm,.wins,.advbox,.recapbox,.ruleBox) :is(b,strong,span,p,li,small,div,bdi,h1,h2,h3,h4,em,a):not(.badge):not(.pos):not(.mp-t):not(.tag):not(.node):not(.say):not(.btn):not(.katex *):not(.fb *){color:var(--ink)!important}
+:root[data-theme=night] :is(.station,.subj,.pr-q,.cf-pane,.daily,.pm) :is(.muted,.hook,.meta,small,.hs-n small,.ar-line){color:var(--muted)!important}
+:root[data-theme=night] .station .hook{color:var(--muted)!important}
+:root[data-theme=night] .btn.gold,:root[data-theme=night] .btn.gold *{color:#1c1405!important}
+:root[data-theme=night] .journey>.station,:root[data-theme=night] .journey>.station.next{background:var(--paper)!important}
+:root[data-theme=night] .m,:root[data-theme=night] .ph-m,:root[data-theme=night] .katex-display{background:transparent!important}
+:root[data-theme=night] :is(.advexs,.advst,.steps,.pr-steps,.glos,.ph-recap,.advsecs) li{background:transparent!important;color:var(--ink)!important}
+:root[data-theme=night] :is(.advexs,.advst,.steps,.pr-steps,.glos,.ph-recap,.advsecs) li :is(b,span,small,div,.tw,.ar){color:inherit}
+:root[data-theme=night] .step-done{background:var(--paper)!important}
+:root[data-theme=night] .cd,:root[data-theme=night] .casio .cd{background:#0a1320!important;color:#e9d3a0!important;border-color:var(--line)!important}
+:root[data-theme=night] .cd *{color:inherit!important}
+:root[data-theme=night] .opt .ar-line,:root[data-theme=night] .ar-line{color:var(--muted)!important}
+:root[data-theme=night] .advvid figcaption{color:var(--muted)}
+:root[data-theme=night] .bk-top,:root[data-theme=night] .bk-bar{background:var(--paper)!important;border-color:var(--line)!important}
+:root[data-theme=night] .bk-top *{color:var(--ink)!important}
+:root[data-theme=night] .bk-top .btn.gold,:root[data-theme=night] .bk-top .btn.gold *{color:#1c1405!important}
+:root[data-theme=night] .pr-q .katex,:root[data-theme=night] .pr-q .katex *{color:var(--ink)}
+/* home screen in night mode: the pale pills (teacher name on the subject tiles, «تحدّي اليوم» / «هل تعلم؟» tags) used light backgrounds with light text */
+:root[data-theme=night] .subj .t-by{background:color-mix(in srgb,var(--c) 26%,transparent);color:color-mix(in srgb,var(--c) 35%,#fff)}
+:root[data-theme=night] .dtag,:root[data-theme=night] .dtag.gold{background:color-mix(in srgb,var(--c1,#e2be62) 22%,transparent);color:#f2e3b3;box-shadow:0 0 0 1px color-mix(in srgb,var(--c1,#e2be62) 45%,transparent)}
