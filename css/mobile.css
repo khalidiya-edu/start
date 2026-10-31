@@ -53,3 +53,6 @@ body{min-height:100vh;min-height:100dvh}
   .bar{position:static}
   body{padding-bottom:calc(40px + env(safe-area-inset-bottom))}
 }
+
+/* bullets of mixed-direction lists (Arabic items inside .glos) must never leave the card: padding on both sides */
+ul.glos,ol.glos{padding-inline:1.5em}
