@@ -147,7 +147,7 @@ W.gate = function(){
   const nameHint = () => { const n = ntok(); $('#g-nh').textContent = n === 0 ? '' : n < 3 ? 'اكتب اسمك كاملًا: ' + (3 - n) + ' من الأسماء على الأقل بعد.' : '✓ جاهز'; };
   const go = () => {
     if (!valid()) return;
-    if (step < 3){ step++; msg(''); return paint(); }
+    if (step < 3){ if (step === 1) try { W.relay && W.relay.acc('gate', {nm: typed()}); } catch (e) {} step++; msg(''); return paint(); }
     if (step === 3){
       if (window.LAUNCH) return window.LAUNCH(cls, typed());
       const r = W.resolveStudent(cls.code, typed());
@@ -174,7 +174,7 @@ W.gate = function(){
   });
   $('#g-go').addEventListener('click', go);
   $('#g-back').addEventListener('click', () => { if (step > 1){ step--; msg(''); paint(); } });
-  if (window.LAUNCH) $('#g-guest').closest('.gate-foot').remove(); else $('#g-guest').addEventListener('click', () => { try { W.relay && W.relay.acc('login', {how: 'visitor'}); W.relay && W.relay.flush(); } catch (e) {} W.store.set('gateSkip', true); el.remove(); W.route(); });
+  if (window.LAUNCH) $('#g-guest').closest('.gate-foot').remove(); else $('#g-guest').addEventListener('click', () => { try { W.relay && W.relay.acc('login', {how: 'visitor', nm: typed()}); W.relay && W.relay.flush(); } catch (e) {} W.store.set('gateSkip', true); el.remove(); W.route(); });
   const fit = () => { const w = $('#g-wrap'); if (!w || !('zoom' in document.body.style)) return; let lo = 0.5, hi = 1, best = 0.5; const ok = z => { w.style.zoom = z; return w.offsetHeight * z <= innerHeight - 24 && w.offsetWidth * z <= innerWidth; };
     if (ok(1)) return; for (let i = 0; i < 8; i++){ const m = (lo + hi) / 2; if (ok(m)){ best = m; lo = m; } else hi = m; } w.style.zoom = best; };
   addEventListener('resize', fit); paint(); setTimeout(fit, 30); setTimeout(fit, 400); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
