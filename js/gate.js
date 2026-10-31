@@ -62,7 +62,7 @@ const secLabel = c => (c.track === 'advanced' ? 'المتقدم ' : 'العام 
 W.me = () => W.store.get('me', null);
 W.needGate = () => !!window.ROSTER && !W.me() && !W.store.get('gateSkip', false);
 W.logout = () => { W.store.set('me', null); W.store.set('gateSkip', false); W.store.set('aud', null); };
-const enter = (me, cls) => { W.store.set('me', me); W.store.set('aud', cls.grade + '-' + cls.track); document.getElementById('gate')?.remove(); location.hash = '#/'; W.route(); W.updateChip && W.updateChip(); };
+const enter = (me, cls, how) => { W.store.set('me', me); W.store.set('aud', cls.grade + '-' + cls.track); try { W.relay && W.relay.acc('login', {how: how || (me.pid ? 'ok' : 'guest')}); W.relay && W.relay.flush(); } catch (e) {} document.getElementById('gate')?.remove(); location.hash = '#/'; W.route(); W.updateChip && W.updateChip(); };
 
 /* the ornament behind the school: a 16-point star rosette with rings (drawn, not an image) */
 function rosette(){
@@ -85,7 +85,7 @@ W.gate = function(){
   try { if (window.LAUNCH) throw 0; const L = JSON.parse(localStorage.getItem('rev1.launch') || 'null'); localStorage.removeItem('rev1.launch');
     if (L && L.name && L.code && Date.now() - L.t < 20 * 60 * 1000){ const c = R.classes.find(x => x.code === L.code);
       if (c){ const nm = String(L.name).trim().replace(/\s+/g, ' '), r = W.resolveStudent(c.code, nm);
-        if (r.status === 'ok'){ enter({pid: r.pid, cls: c.code, name: nm.split(' ')[0], full: nm, at: Date.now()}, c); return; }
+        if (r.status === 'ok'){ enter({pid: r.pid, cls: c.code, name: nm.split(' ')[0], full: nm, at: Date.now()}, c, 'launcher'); return; }
         pre = nm; } } } catch (e) {}
   const el = document.createElement('div'); el.id = 'gate'; el.className = 'gate'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'تسجيل الدخول إلى المنصة');
   const STEPS = ['الاسم', 'الصف', 'الشعبة'];
@@ -123,6 +123,12 @@ W.gate = function(){
     <img class="gate-slogan" src="assets/brand/sloganLight.png" alt="بالميثاق نبلغ الآفاق">
   </div>`;
   document.body.appendChild(el);
+  /* iOS: when the keyboard opens the browser scrolls the page and the fixed gate slides out of its frame; pin it to the visible area instead */
+  (function(){ const vv = window.visualViewport;
+    const fit = () => { if (!el.isConnected) return; if (vv){ el.style.height = vv.height + 'px'; el.style.top = vv.offsetTop + 'px'; el.style.bottom = 'auto'; } if (window.scrollY) window.scrollTo(0, 0); };
+    if (vv){ vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); } window.addEventListener('scroll', fit, {passive: true});
+    el.addEventListener('focusin', e => { setTimeout(() => { fit(); try { e.target.scrollIntoView({block: 'center', behavior: 'smooth'}); } catch (x) {} }, 300); });
+    fit(); })();
   { const d = el.querySelector('#g-dust'); for (let k = 0; k < 22; k++){ const i = document.createElement('i'), r = Math.random; i.style.cssText = `left:${(r() * 100).toFixed(1)}%;top:${(45 + r() * 55).toFixed(1)}%;--s:${(2 + r() * 3).toFixed(1)}px;--o:${(.45 + r() * .45).toFixed(2)};--t:${(10 + r() * 9).toFixed(1)}s;--d:-${(r() * 14).toFixed(1)}s;--dx:${((r() - .5) * 90).toFixed(0)}px`; d.appendChild(i); } }
   const $ = s => el.querySelector(s), say = (id, t) => { const m = $(id); m.textContent = t || ''; m.hidden = !t; setTimeout(fit, 0); };
   const msg = t => { say('#g-msg', t); $('#g-cont')?.remove(); };
@@ -146,6 +152,7 @@ W.gate = function(){
       if (window.LAUNCH) return window.LAUNCH(cls, typed());
       const r = W.resolveStudent(cls.code, typed());
       if (r.status === 'ok') return enter({pid: r.pid, cls: cls.code, name: first(), full: typed(), at: Date.now()}, cls);
+      if (r.status !== 'ok') try { W.relay && W.relay.acc('loginfail', {nm: typed(), cls: cls.code, why: r.status}); W.relay && W.relay.flush(); } catch (e) {}
       if (r.status === 'ambiguous') return msg('في شعبتك أكثر من طالب بهذا الاسم. ارجع واكتب اسمك الكامل كما في السجلّ (مع اسم العائلة).');
       msg('لم نجد هذا الاسم في شعبة ' + secLabel(cls) + '. ارجع وتأكّد من كتابة اسمك الكامل ومن شعبتك، فقد يكون في اسمك خطأ إملائي.');
       const b = document.createElement('button'); b.type = 'button'; b.id = 'g-cont'; b.className = 'gate-link'; b.textContent = 'تابع كضيف بهذا الاسم (لن يظهر تقدّمك لمعلمك)';
@@ -167,7 +174,7 @@ W.gate = function(){
   });
   $('#g-go').addEventListener('click', go);
   $('#g-back').addEventListener('click', () => { if (step > 1){ step--; msg(''); paint(); } });
-  if (window.LAUNCH) $('#g-guest').closest('.gate-foot').remove(); else $('#g-guest').addEventListener('click', () => { W.store.set('gateSkip', true); el.remove(); W.route(); });
+  if (window.LAUNCH) $('#g-guest').closest('.gate-foot').remove(); else $('#g-guest').addEventListener('click', () => { try { W.relay && W.relay.acc('login', {how: 'visitor'}); W.relay && W.relay.flush(); } catch (e) {} W.store.set('gateSkip', true); el.remove(); W.route(); });
   const fit = () => { const w = $('#g-wrap'); if (!w || !('zoom' in document.body.style)) return; let lo = 0.5, hi = 1, best = 0.5; const ok = z => { w.style.zoom = z; return w.offsetHeight * z <= innerHeight - 24 && w.offsetWidth * z <= innerWidth; };
     if (ok(1)) return; for (let i = 0; i < 8; i++){ const m = (lo + hi) / 2; if (ok(m)){ best = m; lo = m; } else hi = m; } w.style.zoom = best; };
   addEventListener('resize', fit); paint(); setTimeout(fit, 30); setTimeout(fit, 400); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);

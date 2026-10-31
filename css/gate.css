@@ -120,3 +120,9 @@
 .gw-steps li[data-s]{font-size:.8rem;gap:6px}
 .gate-sub b{color:#9a7420}
 @media (max-width:640px){.gw-steps .sep{width:10px;margin:0 3px}.gw-steps li[data-s]{font-size:.72rem;gap:4px}.gw-steps li i{width:24px;height:24px;font-size:.8rem}.gw-body{min-height:190px}}
+
+/* phones: the keyboard must never push the screen out of its frame (white area under the gate). The page behind is locked while the gate is open;
+   the gate itself follows the visible area (set from gate.js) and scrolls inside itself when the keyboard is up. */
+html:has(#gate),html:has(#gate) body{background:#07101d;overflow:hidden;overscroll-behavior:none;height:100%}
+.gate{height:100vh;height:100dvh;display:flex;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.gate-wrap{margin:auto}
