@@ -62,7 +62,16 @@ const secLabel = c => (c.track === 'advanced' ? 'المتقدم ' : 'العام 
 W.me = () => W.store.get('me', null);
 W.needGate = () => !!window.ROSTER && !W.me() && !W.store.get('gateSkip', false);
 W.logout = () => { W.store.set('me', null); W.store.set('gateSkip', false); W.store.set('aud', null); };
-const enter = (me, cls, how) => { W.store.set('me', me); W.store.set('aud', cls.grade + '-' + cls.track); try { W.relay && W.relay.acc('login', {how: how || (me.pid ? 'ok' : 'guest')}); W.relay && W.relay.flush(); } catch (e) {} document.getElementById('gate')?.remove(); location.hash = '#/'; W.route(); W.updateChip && W.updateChip(); };
+const enter = (me, cls, how) => { W.store.set('me', me); W.store.set('aud', cls.grade + '-' + cls.track); try { W.relay && W.relay.acc('login', {how: how || (me.pid ? 'ok' : 'guest')}); W.relay && W.relay.flush(); } catch (e) {} document.getElementById('gate')?.remove(); location.hash = '#/'; W.route(); W.updateChip && W.updateChip(); W.announce && W.announce(); };
+/* teachers and visitors (14 Nov 2026, his word: teachers kept failing to log in because they went through the student steps) */
+const enterAs = (role, nm) => { try { W.relay && W.relay.acc('login', {how: role, nm: nm || ''}); W.relay && W.relay.flush(); } catch (e) {} W.store.set('gateSkip', true); W.store.set('role', role); document.getElementById('gate')?.remove(); location.hash = '#/'; W.route(); W.updateChip && W.updateChip(); W.announce && W.announce(); };
+/* is the typed name a student's anywhere in the school? (any section: a clear match or several) */
+W.isStudentName = function(typed){      /* a real match: at least three parts of the name agree with a student's record (two common names, e.g. «يوسف محمد», are not enough) */
+  const R = window.ROSTER; if (!R || !R.classes || !R.idx) return true; const U = tokens(typed); if (U.length < 3) return false;
+  const cand = new Map(); keysOf(U).forEach(k => { const n = k.split(' ').length; if (n >= 3) cand.set(hh('k:' + k), n); });
+  return R.classes.some(c => (R.idx[c.code] || []).some(([pid, ks]) => ks.some(x => cand.has(x))));
+};
+
 
 /* the ornament behind the school: a 16-point star rosette with rings (drawn, not an image) */
 function rosette(){
@@ -105,6 +114,7 @@ W.gate = function(){
           <h1>ما اسمك الكامل؟</h1><p class="gate-sub">اكتب اسمك كاملًا كما في سجلّ المدرسة.</p>
           <input id="g-name" class="gate-in" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="الاسم الكامل" aria-label="الاسم الكامل">
           <p class="gate-hint2" id="g-nh"></p>
+          <div class="gate-role" id="g-role" hidden><p class="gr-t" id="g-role-t"></p><div class="gr-btns"><button type="button" class="gr-b gr-teacher" data-role="teacher"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-4 9 4-9 4z"/><path d="M7 11v4c0 1.5 2.2 3 5 3s5-1.5 5-3v-4"/></svg>دخول كمعلّم</button><button type="button" class="gr-b gr-visitor" data-role="visitor"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>دخول كزائر</button></div><p class="gr-s" id="g-role-s"></p></div>
         </div>
         <div class="gp" data-s="2" hidden>
           <h1>في أي صفٍّ أنت؟</h1><p class="gate-sub" id="g-hi"></p>
@@ -118,7 +128,7 @@ W.gate = function(){
       </div>
       <div class="gw-actions"><button type="button" class="gate-back" id="g-back" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>رجوع</button>
         <button type="button" class="gate-go" id="g-go" disabled><span id="g-golab">التالي</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button></div>
-      <div class="gate-foot"><button type="button" class="gate-link" id="g-guest">أنا معلّم أو زائر</button></div>
+      <div class="gate-foot"><button type="button" class="gate-link gate-staff" id="g-guest">أنا معلّم أو زائر — ادخل من هنا</button></div>
     </section>
     <img class="gate-slogan" src="assets/brand/sloganLight.png" alt="بالميثاق نبلغ الآفاق">
   </div>`;
@@ -131,7 +141,7 @@ W.gate = function(){
     fit(); })();
   { const d = el.querySelector('#g-dust'); for (let k = 0; k < 22; k++){ const i = document.createElement('i'), r = Math.random; i.style.cssText = `left:${(r() * 100).toFixed(1)}%;top:${(45 + r() * 55).toFixed(1)}%;--s:${(2 + r() * 3).toFixed(1)}px;--o:${(.45 + r() * .45).toFixed(2)};--t:${(10 + r() * 9).toFixed(1)}s;--d:-${(r() * 14).toFixed(1)}s;--dx:${((r() - .5) * 90).toFixed(0)}px`; d.appendChild(i); } }
   const $ = s => el.querySelector(s), say = (id, t) => { const m = $(id); m.textContent = t || ''; m.hidden = !t; setTimeout(fit, 0); };
-  const msg = t => { say('#g-msg', t); $('#g-cont')?.remove(); };
+  const msg = t => { say('#g-msg', t); $('#g-cont')?.remove(); $('#g-cont2')?.remove(); };
   const typed = () => $('#g-name').value.trim().replace(/\s+/g, ' '), first = () => typed().split(' ')[0];
   const ntok = () => tokens(typed()).length;
   const valid = () => step === 1 ? ntok() >= 3 : step === 2 ? !!grade : !!cls;
@@ -144,6 +154,14 @@ W.gate = function(){
     if (step === 1) $('#g-name').focus();
     setTimeout(fit, 0);
   };
+  let roleT = 0;
+  const rolePanel = () => { clearTimeout(roleT); roleT = setTimeout(() => {
+    const n = ntok(), box = $('#g-role'); let t = '', sub = '';
+    if (n === 2){ t = 'هل أنت معلّم أو زائر؟ ادخل مباشرة:'; sub = 'إن كنت طالبًا فأكمل اسمك الثلاثي ثم اضغط «التالي».'; }
+    else if (n >= 3 && !W.isStudentName(typed())){ t = 'هذا الاسم ليس في سجلّ الطلاب. إن كنت معلّمًا أو زائرًا فادخل من هنا:'; sub = 'إن كنت طالبًا فتأكّد من كتابة اسمك كما في سجلّ المدرسة.'; }
+    $('#g-role-t').textContent = t; $('#g-role-s').textContent = sub; box.hidden = !t; $('#g-guest').hidden = !!t; setTimeout(fit, 0);
+  }, 220); };
+  el.addEventListener('click', e => { const b = e.target.closest('[data-role]'); if (b) enterAs(b.dataset.role, typed()); });
   const nameHint = () => { const n = ntok(); $('#g-nh').textContent = n === 0 ? '' : n < 3 ? 'اكتب اسمك كاملًا: ' + (3 - n) + ' من الأسماء على الأقل بعد.' : '✓ جاهز'; };
   const go = () => {
     if (!valid()) return;
@@ -156,11 +174,12 @@ W.gate = function(){
       if (r.status === 'ambiguous') return msg('في شعبتك أكثر من طالب بهذا الاسم. ارجع واكتب اسمك الكامل كما في السجلّ (مع اسم العائلة).');
       msg('لم نجد هذا الاسم في شعبة ' + secLabel(cls) + '. ارجع وتأكّد من كتابة اسمك الكامل ومن شعبتك، فقد يكون في اسمك خطأ إملائي.');
       const b = document.createElement('button'); b.type = 'button'; b.id = 'g-cont'; b.className = 'gate-link'; b.textContent = 'تابع كضيف بهذا الاسم (لن يظهر تقدّمك لمعلمك)';
-      b.onclick = () => enter({pid: null, cls: cls.code, name: first(), guest: typed(), at: Date.now()}, cls); $('#g-msg').after(b); setTimeout(fit, 0); return;
+      b.onclick = () => enter({pid: null, cls: cls.code, name: first(), guest: typed(), at: Date.now()}, cls); $('#g-msg').after(b);
+      const rb = document.createElement('div'); rb.id = 'g-cont2'; rb.className = 'gr-btns gr-after'; rb.innerHTML = '<button type="button" class="gr-b gr-teacher" data-role="teacher">أنا معلّم</button><button type="button" class="gr-b gr-visitor" data-role="visitor">أنا زائر</button>'; b.after(rb); setTimeout(fit, 0); return;
     }
   };
-  if (pre){ $('#g-name').value = pre; }
-  $('#g-name').addEventListener('input', () => { nameHint(); $('#g-go').disabled = !valid(); });
+  if (pre){ $('#g-name').value = pre; setTimeout(() => { nameHint(); rolePanel(); }, 0); }
+  $('#g-name').addEventListener('input', () => { nameHint(); rolePanel(); $('#g-go').disabled = !valid(); });
   $('#g-name').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   $('#g-grades').addEventListener('click', e => {
     const b = e.target.closest('[data-g]'); if (!b) return; grade = +b.dataset.g; cls = null;
@@ -174,13 +193,29 @@ W.gate = function(){
   });
   $('#g-go').addEventListener('click', go);
   $('#g-back').addEventListener('click', () => { if (step > 1){ step--; msg(''); paint(); } });
-  if (window.LAUNCH) $('#g-guest').closest('.gate-foot').remove(); else $('#g-guest').addEventListener('click', () => { try { W.relay && W.relay.acc('login', {how: 'visitor', nm: typed()}); W.relay && W.relay.flush(); } catch (e) {} W.store.set('gateSkip', true); el.remove(); W.route(); });
+  if (window.LAUNCH) $('#g-guest').closest('.gate-foot').remove(); else $('#g-guest').addEventListener('click', () => { step = 1; paint(); const n = ntok(); $('#g-role-t').textContent = 'اختر صفتك:'; $('#g-role-s').textContent = ''; $('#g-role').hidden = false; $('#g-guest').hidden = true; setTimeout(fit, 0); });
   const fit = () => { const w = $('#g-wrap'); if (!w || !('zoom' in document.body.style)) return; let lo = 0.5, hi = 1, best = 0.5; const ok = z => { w.style.zoom = z; return w.offsetHeight * z <= innerHeight - 24 && w.offsetWidth * z <= innerWidth; };
     if (ok(1)) return; for (let i = 0; i < 8; i++){ const m = (lo + hi) / 2; if (ok(m)){ best = m; lo = m; } else hi = m; } w.style.zoom = best; };
   addEventListener('resize', fit); paint(); setTimeout(fit, 30); setTimeout(fit, 400); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 };
 /* a returning student is not asked again: his name stays on the device, and a short welcome says so */
+/* a one-time notice after entering (14 Nov 2026, his word): every subject now has a «مراجعة الهيكل» section. Shown once on each device. */
+const ANN = 'ann.eot1';
+W.announce = function(){
+  if (W.store.get(ANN, false) || document.getElementById('ann')) return;
+  const d = document.createElement('div'); d.id = 'ann'; d.className = 'ann'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'ann-h');
+  d.innerHTML = `<div class="ann-card"><span class="ann-tag">جديد في المنصّة</span>
+    <i class="ann-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2"/></svg></i>
+    <h2 id="ann-h">أُضيف قسم «مراجعة الهيكل» لكل مادة</h2>
+    <p>${document.documentElement.dir === 'ltr' ? 'Open the book of any subject: at its top you will find the <b>“Structure review”</b> tab, to revise by the exam structure, and beside it <b>“General review”</b> for all the lessons.' : 'افتح كتاب أي مادة، وستجد في أعلاه تبويب <b>«مراجعة الهيكل»</b> للمراجعة وفق هيكل الاختبار، وبجانبه <b>«مراجعة عامة»</b> لكل الدروس.'}</p>
+    <button type="button" class="ann-ok">حسنًا، فهمت</button></div>`;
+  const close = () => { W.store.set(ANN, true); d.remove(); document.removeEventListener('keydown', esc); };
+  const esc = e => { if (e.key === 'Escape') close(); };
+  d.addEventListener('click', e => { if (e.target === d || e.target.closest('.ann-ok')) close(); }); document.addEventListener('keydown', esc);
+  setTimeout(() => { if (document.getElementById('gate')) return; document.body.appendChild(d); d.querySelector('.ann-ok').focus(); }, 650);
+};
 W.welcomeBack = function(){
+  if (!(W.needGate && W.needGate())) W.announce();
   const me = W.me && W.me(); if (!me || sessionStorage.getItem('rev1.wb')) return;
   try { sessionStorage.setItem('rev1.wb', '1'); } catch(e){}
   setTimeout(() => W.toast('أهلًا بعودتك يا ' + me.name + ' 👋 تقدّمك محفوظ'), 700);

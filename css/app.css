@@ -213,3 +213,13 @@ table.tb th{background:var(--sand);position:sticky;top:0}
 }
 @media print{.bar,.nav,.foot,.rail,.btn{display:none}body{background:#fff}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.subj:hover{translate:none}}
+
+/* interactive HTML source page: no duplicate title, the page fills the whole window */
+main.res-full{max-width:none;padding:12px 10px 10px}
+main.res-full .viewer{height:calc(100vh - 120px);min-height:520px;border-radius:10px}
+.resbar{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin:0 0 10px;padding:7px 10px;background:rgba(255,255,255,.72);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+.resbar-m,.resbar-a{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.resbar .badge{margin:0}
+.resbar-by{color:var(--muted);font-size:.86rem;padding-inline-start:10px;border-inline-start:1px solid var(--line)}
+.resbar .btn{min-height:36px;padding:4px 16px;font-size:.92rem;margin:0}
+@media (max-width:640px){.resbar-a{width:100%}.resbar-a .btn{flex:1}}

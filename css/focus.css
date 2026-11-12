@@ -27,7 +27,7 @@
 @media (max-width:640px){
   .journey{gap:8px}
   .journey>.station,.journey>.station.next{padding:8px 12px 9px 10px!important}
-  .station .act{min-height:38px;padding:0 14px;flex:1 1 0;justify-content:center}
+  .station .act{min-height:44px;padding:0 14px;flex:1 1 0;justify-content:center}
 }
 /* e-book toolbar on phones: two compact rows instead of five */
 @media (max-width:640px){

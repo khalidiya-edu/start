@@ -48,6 +48,12 @@ body{min-height:100vh;min-height:100dvh}
   table.tb:not(.glos) th,table.tb:not(.glos) td{white-space:nowrap;word-break:normal;overflow-wrap:normal}
   /* question footer (previous / hint / next) must clear the slogan bar */
   .pr-foot{bottom:calc(36px + env(safe-area-inset-bottom))!important}
+  /* practice screen: one-row header (brand = way home, «إنهاء» is in the practice bar) and no slogan bar, so the question and its options fit the screen */
+  html.in-practice .bar-in .nav,html.in-practice #audchip,html.in-practice .bar-in .sbtn,html.in-practice .bar-search,html.in-practice .sl-bar{display:none!important}
+  html.in-practice .bar-in{flex-wrap:nowrap;justify-content:space-between}
+  html.in-practice .bar-in .brand{margin-inline-end:auto}
+  html.in-practice body{padding-bottom:env(safe-area-inset-bottom)}
+  html.in-practice .pr-foot{bottom:env(safe-area-inset-bottom)!important}
 }
 @media (max-width:640px) and (orientation:landscape){
   .bar{position:static}

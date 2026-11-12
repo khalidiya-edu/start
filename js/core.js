@@ -8,6 +8,8 @@ W.$ = (s, r=document) => r.querySelector(s);
 W.$$ = (s, r=document) => [...r.querySelectorAll(s)];
 W.shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
 W.AR_DIGITS = s => String(s).replace(/[٠-٩]/g, d => d.charCodeAt(0)-0x660).replace(/[۰-۹]/g, d => d.charCodeAt(0)-0x6F0);
+/* the student's own calendar day (local time, not UTC: in the UAE a UTC day would change at 4 a.m.) */
+W.day = t => { const d = t ? new Date(t) : new Date(), p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
 W.fmtNum = n => new Intl.NumberFormat('ar-EG-u-nu-latn').format(n);
 /* Arabic counted nouns: 1 / 2 / 3-10 / 11+ */
 W.cnt = (n, f) => n === 1 ? f[0] : n === 2 ? f[1] : n <= 10 ? n + ' ' + f[2] : n + ' ' + f[3];
@@ -18,7 +20,7 @@ const mem = {};
 /* per-student storage: once a student has signed in (W.store 'me' = {pid,...}) his progress, mistakes, favourites, stars and streak live under his own id,
    so two boys on one device never mix; device-level choices (who is signed in, theme, text size ...) are shared */
 const GLOBAL = new Set(['me', 'aud', 'gateSkip', 'theme', 'fs', 'snd', 'tmin', 'a11y', 'bkthumbs', 'reviewer', 'approved', 'gateLock']);
-let curPid;
+let curPid, saveWarned = false;
 /* every class site lives on the same origin (khalidiya-edu.github.io/<site>/), so localStorage is namespaced by site: a student who opens another class never overwrites this one's login or progress */
 const SITE = (() => { try { return (location.pathname.match(/^\/(g\d+-(?:general|advanced))\//) || [])[1] || ''; } catch(e){ return ''; } })();   // host-independent: works on github.io and on a custom domain
 const PFX = 'rev1.' + (SITE ? SITE + '.' : '');
@@ -37,7 +39,7 @@ const pidOf = () => { if (curPid === undefined){ try { const m = JSON.parse(loca
 const nk = k => (GLOBAL.has(k) || !pidOf() ? '' : pidOf() + '.') + k;
 W.store = {
   get(k, d){ const kk = nk(k); try { const v = localStorage.getItem(PFX + kk); return v === null ? (kk in mem ? mem[kk] : d) : JSON.parse(v); } catch(e){ return kk in mem ? mem[kk] : d; } },
-  set(k, v){ const kk = nk(k); mem[kk] = v; try { localStorage.setItem(PFX + kk, JSON.stringify(v)); } catch(e){} if (k === 'me') curPid = undefined; },
+  set(k, v){ const kk = nk(k); mem[kk] = v; try { localStorage.setItem(PFX + kk, JSON.stringify(v)); } catch(e){ if (!saveWarned){ saveWarned = true; setTimeout(() => W.toast && W.toast('تعذّر حفظ تقدّمك على هذا الجهاز'), 0); } } if (k === 'me') curPid = undefined; },   // a full or blocked storage is said once, never silently
 };
 
 /* ---------- static knowledge ---------- */
@@ -66,20 +68,23 @@ W.audList = function(){
   Object.values(window.BANKS||{}).flat().forEach(b => b.aud.forEach(add));
   return [...m].sort((x,y)=> parseInt(x)-parseInt(y) || (x<y?-1:1));
 };
-W.sel = () => W.store.get('aud', null);
+W.sel = () => SITE ? SITE.slice(1) : W.store.get('aud', null);   // a class site only publishes its own grade+track files: never show another grade's sources there (their pages/ images are not on that site)
 W.matchAud = (auds, sel) => { if (!sel) return true; const [g,t] = sel.split('-'); return (auds||[]).some(a => a.grade == g && (a.track == null || a.track === t)); };
 W.trackUnsure = (auds, sel) => { if (!sel) return false; const [g] = sel.split('-'); return (auds||[]).some(a => a.grade == g && a.track == null); };
 
 /* ---------- data access ---------- */
 W.resById = id => (W._rm ||= Object.fromEntries((window.RES||[]).map(r => [r.id, r])))[id];
 /* official timetable layer (data/schedule.js): the student's section decides which teacher's files he sees */
-W.sect = () => { const m = W.store.get('me', null), sel = W.sel(); if (!m || !m.cls || !sel) return ''; const c = String(m.cls).replace(/A1$/, 'ADV'); return parseInt(c) === parseInt(sel) ? c : ''; };
+W.sect = () => { const m = W.store.get('me', null), sel = W.sel(); if (!m || !m.cls || !sel) return ''; const c = String(m.cls).replace(/A1$/, 'ADV'); return parseInt(c) === parseInt(sel) && (/ADV$/.test(c) ? 'advanced' : 'general') === sel.split('-')[1] ? c : ''; };
+/* a visitor / a student browsing another track has no matching section: the grade's teachers come from the timetable (union over that grade+track), never from the student's own section */
+W.gradeTeachers = (sel, sub) => { const S = window.SCHED; if (!S || !S.strict || !sel) return []; const [g, t] = sel.split('-'), ks = []; Object.keys(S.asg).forEach(sc => { if (parseInt(sc) == g && (/ADV$/.test(sc) ? 'advanced' : 'general') === t) { const k = S.asg[sc][sub]; if (k && !ks.includes(k)) ks.push(k); ((S.more[sc] || {})[sub] || []).forEach(x => { if (!ks.includes(x)) ks.push(x); }); } }); return ks.map(k => S.T[k]).filter(Boolean); };
 W.assigned = sub => { const S = window.SCHED; if (!S || !S.strict) return null; const a = S.asg[W.sect()]; return a && a[sub] ? a[sub] : null; };
 W.teacherOf = sub => { const k = W.assigned(sub); return k ? window.SCHED.T[k] : null; };
 W.subjLabel = id => { const S = window.SCHED, s = W.subj(id); return id === 'science' && S && S.sci[W.sect()] ? S.sci[W.sect()] : (s ? s.ar : id); };
 /* a file is hidden only when its owner is KNOWN and is not the teacher of this student's section; files without an owner (made by the platform) stay */
-W.ownerOK = r => { const S = window.SCHED, t = W.assigned(r.sub); if (!t || !r.teach) return true; const o = S.owner[r.teach]; return !o || o === t; };
-W.sectNote = (sub, n) => { const t = W.teacherOf(sub); if (!t) return ''; return `<div class="notice">شعبتك <b dir="ltr">${W.esc(W.sect())}</b> — معلّم المادة: <b>${W.esc(t.ar)}</b>${n ? '' : '. لم تصلنا ملفاته لهذه الشعبة بعد، وسيظهر هنا ما يرفعه.'}</div>`; };
+W.schedTeachers = sub => { const S = window.SCHED, k = W.assigned(sub); if (!k) return []; const m = (S.more[W.sect()] || {})[sub] || []; return [k].concat(m).map(x => S.T[x]).filter(Boolean); };
+W.ownerOK = r => { const S = window.SCHED, t = W.assigned(r.sub); if (!t || !r.teach) return true; const o = S.owner[r.teach], sc = W.sect(), ok = [t].concat((S.more[sc] || {})[r.sub] || [], (S.allow[sc] || {})[r.sub] || []); return !o || ok.includes(o); };
+W.sectNote = (sub, n) => { const S = window.SCHED, ts = W.schedTeachers(sub); if (!ts.length) { return S && S.vac && (S.vac[W.sect()] || []).includes(sub) ? `<div class="notice">شعبتك <b dir="ltr">${W.esc(W.sect())}</b> — لا يوجد معلّم مُعيَّن لهذه المادة في الجدول الحالي. المعروض هنا ملفات سابقة.</div>` : ''; } return `<div class="notice">شعبتك <b dir="ltr">${W.esc(W.sect())}</b> — ${ts.length > 1 ? 'معلّما المادة' : 'معلّم المادة'}: <b>${ts.map(t => W.esc(t.ar)).join(' و')}</b>${n ? '' : '. ستظهر هنا ملفاته لهذه الشعبة عند إضافتها.'}</div>`; };
 W.resFor = (sel, sub) => (window.RES||[]).filter(r => (!sub || r.sub === sub) && W.matchAud(r.aud, sel) && !r.dup && W.ownerOK(r));
 W.banksFor = (sel, sub) => ((window.BANKS||{})[sub] || []).filter(b => W.matchAud(b.aud, sel));
 /* auto-graded types only: open answers (written, short) are never graded as final by the machine */
@@ -89,8 +94,8 @@ W.isGraded = it => ['mcq', 'expr', 'num', 'set'].includes(it.type);
 W.INTERACTIVE = ['sort', 'order', 'match'];
 /* small rewards: stars and a daily streak (no mastery percentages, no predictions) */
 W.addXP = function(n){
-  const d = new Date().toISOString().slice(0, 10), s = W.store.get('streak', {d: null, n: 0}), x = W.store.get('xp', 0) + n;
-  if (s.d !== d){ const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10); s.n = s.d === y ? s.n + 1 : 1; s.d = d; W.store.set('streak', s); }
+  const d = W.day(), s = W.store.get('streak', {d: null, n: 0}), x = W.store.get('xp', 0) + n;
+  if (s.d !== d){ const y = W.day(Date.now() - 864e5); s.n = s.d === y ? s.n + 1 : 1; s.d = d; W.store.set('streak', s); }
   W.store.set('xp', x); return x;
 };
 W.toast = function(msg){ const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 1700); };
@@ -110,7 +115,7 @@ W.curriculum = function(sel, sub){
     (window.LMETA?.[sub]||[]).filter(l => W.matchAud(l.aud, sel)).forEach(l => {
       const un = U(l.unit, l.ut || 'الوحدة 1 — التعابير والمعادلات التربيعية');
       const bs = banks.filter(b => b.lesson === l.id);
-      const L = {id:l.id, sub, unit:l.unit, n:l.n, t:l.t, kind: l.src ? 'src' : (sub === 'math' ? 'math' : 'sci'), banks:bs, links:l.links, kw:l.kw, rids:l.rids, intro:l.intro, hub:l.hub, emoji:l.emoji, guide:(window.GUIDES||{})[l.id], pending:l.pending, adv:l.adv};
+      const L = {id:l.id, sub, unit:l.unit, n:l.n, t:l.t, kind: l.src ? 'src' : (sub === 'math' ? 'math' : 'sci'), banks:bs, links:l.links, kw:l.kw, rids:l.rids, intro:l.intro, hub:l.hub, emoji:l.emoji, guide:(window.GUIDES||{})[l.id], pending:l.pending, adv:l.adv, scope:l.scope};
       un.lessons.push(L); W.LESSON[L.id] = L;
     });
   } else if (sub === 'english'){
@@ -127,7 +132,7 @@ W.curriculum = function(sel, sub){
       else if (b0.skill === 'reading' && u) { t = 'Reading comprehension'; kind = 'reading'; }
       else { t = b0.title; kind = 'exam'; if (b0.skill === 'grammar') t = 'Grammar quiz'; if (b0.skill === 'vocabulary') t = 'Vocabulary quiz'; }
       const id = `e-${ak}-${u}-${kind}-${slug(t)}${kind==='exam'?'-'+slug(b0.id):''}`;
-      const L = {id, sub, unit:u, t, kind, banks:g.banks, guide:(window.GUIDES||{})[id] || (kind==='grammar' ? (window.GUIDES_EN||{})[slug(b0.topic||b0.title)] : null), unitNo:u};
+      const L = {id, sub, unit:u, t, kind, banks:g.banks, guide:(window.GUIDES||{})[id] || (kind==='grammar' ? (window.GUIDES_EN||{})[slug(b0.topic||b0.title)] : null), unitNo:u, scope:g.banks.every(b => b.scope === 'eot') ? 'eot' : undefined};
       un.lessons.push(L); W.LESSON[id] = L;
     });
     // vocabulary glossaries for this audience attach to the vocab lesson of their unit
@@ -314,7 +319,7 @@ const LATIN_RUN = /([A-Za-z][A-Za-z0-9'’\-]*(?:[ ]+[A-Za-z0-9][A-Za-z0-9'’\-
 W.rich = function(s){
   if (s == null) return '';
   const parts = String(s).replace(/\\\$/g, '\uE000').split('$');   // \$ = a literal dollar sign (currency), not a math delimiter
-  return parts.map((p,i) => i % 2 ? W.tex(p) : p.split(LATIN_RUN).map((x,j) => j % 2 ? '<bdi dir="ltr">' + W.esc(x) + '</bdi>' : W.esc(x)).join('').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\uE000/g, '$$')).join('');
+  return parts.map((p,i) => i % 2 ? W.tex(p.replace(/\uE000/g, '\\$')) : p.split(LATIN_RUN).map((x,j) => j % 2 ? '<bdi dir="ltr">' + W.esc(x) + '</bdi>' : W.esc(x)).join('').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\uE000/g, '$$')).join('');
 };
 W.opt = (o, sub) => (sub === 'math' && !/[؀-ۿ]|AED|\$/.test(o)) ? W.tex(o) : W.rich(o);   // an option that carries its own $…$ delimiters goes through rich()
 
