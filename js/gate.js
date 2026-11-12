@@ -67,7 +67,7 @@ const enter = (me, cls, how) => { W.store.set('me', me); W.store.set('aud', cls.
 const enterAs = (role, nm) => { try { W.relay && W.relay.acc('login', {how: role, nm: nm || ''}); W.relay && W.relay.flush(); } catch (e) {} W.store.set('gateSkip', true); W.store.set('role', role); document.getElementById('gate')?.remove(); location.hash = '#/'; W.route(); W.updateChip && W.updateChip(); W.announce && W.announce(); };
 /* is the typed name a student's anywhere in the school? (any section: a clear match or several) */
 W.isStudentName = function(typed){      /* a real match: at least three parts of the name agree with a student's record (two common names, e.g. «يوسف محمد», are not enough) */
-  const R = window.ROSTER; if (!R || !R.classes || !R.idx) return true; const U = tokens(typed); if (U.length < 3) return false;
+  const R = window.ROSTER; if (!R || !R.classes || !R.idx || !Object.keys(R.idx).length) return true; const U = tokens(typed); if (U.length < 3) return false;
   const cand = new Map(); keysOf(U).forEach(k => { const n = k.split(' ').length; if (n >= 3) cand.set(hh('k:' + k), n); });
   return R.classes.some(c => (R.idx[c.code] || []).some(([pid, ks]) => ks.some(x => cand.has(x))));
 };
@@ -87,12 +87,13 @@ const corner = pos => `<svg class="gate-corner ${pos}" viewBox="0 0 60 60" aria-
 
 W.gate = function(){
   if (document.getElementById('gate')) return;
-  const R = window.ROSTER; let step = 1, grade = null, cls = null;
+  const R = window.ROSTER; let step = 1, grade = null, cls = null, roleSel = null;
   /* the one-QR launcher (khalidiya-edu.github.io/start) already asked for name, grade and section and left them in localStorage ('rev1.launch', same origin):
      enter straight away when the name is recognised; otherwise show this screen with the name filled in */
   let pre = null;
   try { if (window.LAUNCH) throw 0; const L = JSON.parse(localStorage.getItem('rev1.launch') || 'null'); localStorage.removeItem('rev1.launch');
-    if (L && L.name && L.code && Date.now() - L.t < 20 * 60 * 1000){ const c = R.classes.find(x => x.code === L.code);
+    if (L && (L.name || L.role) && L.code && Date.now() - L.t < 20 * 60 * 1000){ const c = R.classes.find(x => x.code === L.code);
+      if (c && (L.role === 'teacher' || L.role === 'visitor')){ W.store.set('aud', c.grade + '-' + c.track); enterAs(L.role, String(L.name || '').trim()); return; }
       if (c){ const nm = String(L.name).trim().replace(/\s+/g, ' '), r = W.resolveStudent(c.code, nm);
         if (r.status === 'ok'){ enter({pid: r.pid, cls: c.code, name: nm.split(' ')[0], full: nm, at: Date.now()}, c, 'launcher'); return; }
         pre = nm; } } } catch (e) {}
@@ -144,12 +145,12 @@ W.gate = function(){
   const msg = t => { say('#g-msg', t); $('#g-cont')?.remove(); $('#g-cont2')?.remove(); };
   const typed = () => $('#g-name').value.trim().replace(/\s+/g, ' '), first = () => typed().split(' ')[0];
   const ntok = () => tokens(typed()).length;
-  const valid = () => step === 1 ? ntok() >= 3 : step === 2 ? !!grade : !!cls;
+  const valid = () => step === 1 ? (roleSel || ntok() >= 3) : step === 2 ? !!grade : !!cls;
   const paint = () => {
     el.querySelectorAll('.gp').forEach(p => p.hidden = +p.dataset.s !== step);
     el.querySelectorAll('.gw-steps li[data-s]').forEach(li => { const n = +li.dataset.s; li.classList.toggle('on', n === step); li.classList.toggle('done', n < step); });
     $('#g-back').hidden = step === 1; $('#g-golab').textContent = step === 3 ? 'ادخل إلى المنصة' : 'التالي'; $('#g-go').disabled = !valid();
-    $('#g-hi').textContent = 'أهلًا ' + first() + '، اختر صفّك.';
+    $('#g-hi').textContent = roleSel ? (roleSel === 'teacher' ? 'أهلًا بك أستاذنا، اختر الصف الذي تريد الاطلاع عليه.' : 'أهلًا بك، اختر الصف الذي تريد الاطلاع عليه.') : 'أهلًا ' + first() + '، اختر صفّك.';
     $('#g-hi3').textContent = grade ? 'الصف ' + GN[grade] + ' — اختر شعبتك.' : '';
     if (step === 1) $('#g-name').focus();
     setTimeout(fit, 0);
@@ -161,13 +162,15 @@ W.gate = function(){
     else if (n >= 3 && !W.isStudentName(typed())){ t = 'هذا الاسم ليس في سجلّ الطلاب. إن كنت معلّمًا أو زائرًا فادخل من هنا:'; sub = 'إن كنت طالبًا فتأكّد من كتابة اسمك كما في سجلّ المدرسة.'; }
     $('#g-role-t').textContent = t; $('#g-role-s').textContent = sub; box.hidden = !t; $('#g-guest').hidden = !!t; setTimeout(fit, 0);
   }, 220); };
-  el.addEventListener('click', e => { const b = e.target.closest('[data-role]'); if (b) enterAs(b.dataset.role, typed()); });
+  el.addEventListener('click', e => { const b = e.target.closest('[data-role]'); if (!b) return;
+    if (window.LAUNCH){ roleSel = b.dataset.role; $('#g-role').hidden = true; step = 2; msg(''); return paint(); }      /* QR launcher: a class site is still needed, so grade and section come next */
+    enterAs(b.dataset.role, typed()); });
   const nameHint = () => { const n = ntok(); $('#g-nh').textContent = n === 0 ? '' : n < 3 ? 'اكتب اسمك كاملًا: ' + (3 - n) + ' من الأسماء على الأقل بعد.' : '✓ جاهز'; };
   const go = () => {
     if (!valid()) return;
     if (step < 3){ if (step === 1) try { W.relay && W.relay.acc('gate', {nm: typed()}); } catch (e) {} step++; msg(''); return paint(); }
     if (step === 3){
-      if (window.LAUNCH) return window.LAUNCH(cls, typed());
+      if (window.LAUNCH) return window.LAUNCH(cls, typed(), roleSel);
       const r = W.resolveStudent(cls.code, typed());
       if (r.status === 'ok') return enter({pid: r.pid, cls: cls.code, name: first(), full: typed(), at: Date.now()}, cls);
       if (r.status !== 'ok') try { W.relay && W.relay.acc('loginfail', {nm: typed(), cls: cls.code, why: r.status}); W.relay && W.relay.flush(); } catch (e) {}
@@ -192,8 +195,8 @@ W.gate = function(){
     el.querySelectorAll('.gate-s').forEach(x => x.setAttribute('aria-pressed', x === b)); $('#g-go').disabled = false;
   });
   $('#g-go').addEventListener('click', go);
-  $('#g-back').addEventListener('click', () => { if (step > 1){ step--; msg(''); paint(); } });
-  if (window.LAUNCH) $('#g-guest').closest('.gate-foot').remove(); else $('#g-guest').addEventListener('click', () => { step = 1; paint(); const n = ntok(); $('#g-role-t').textContent = 'اختر صفتك:'; $('#g-role-s').textContent = ''; $('#g-role').hidden = false; $('#g-guest').hidden = true; setTimeout(fit, 0); });
+  $('#g-back').addEventListener('click', () => { if (step > 1){ step--; if (step === 1) roleSel = null; msg(''); paint(); } });
+  $('#g-guest').addEventListener('click', () => { step = 1; paint(); const n = ntok(); $('#g-role-t').textContent = 'اختر صفتك:'; $('#g-role-s').textContent = ''; $('#g-role').hidden = false; $('#g-guest').hidden = true; setTimeout(fit, 0); });
   const fit = () => { const w = $('#g-wrap'); if (!w || !('zoom' in document.body.style)) return; let lo = 0.5, hi = 1, best = 0.5; const ok = z => { w.style.zoom = z; return w.offsetHeight * z <= innerHeight - 24 && w.offsetWidth * z <= innerWidth; };
     if (ok(1)) return; for (let i = 0; i < 8; i++){ const m = (lo + hi) / 2; if (ok(m)){ best = m; lo = m; } else hi = m; } w.style.zoom = best; };
   addEventListener('resize', fit); paint(); setTimeout(fit, 30); setTimeout(fit, 400); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
